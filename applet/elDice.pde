@@ -68,6 +68,7 @@ void draw() {
  
   // Change height of the camera with mouseY
 
+
   for (int dim = 0; dim < 3; dim++) {
     stroke(100,100,100);
     for(int i = 0; i < 4; i++ ) {
@@ -162,7 +163,7 @@ class Sphere {
     fill(c);
     pushMatrix();
     translate(x, y, z);
-    sphere(2);
+    box(5);
     popMatrix();
   }
 }

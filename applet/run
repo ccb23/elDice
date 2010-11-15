@@ -1,0 +1,4 @@
+
+javac -classpath opengl.jar:core.jar:ocd.jar:Picking.jar:/Applications/Processing.app/Contents/Resources/Java/libraries/opengl/library/*  elDice.java
+
+java -Djava.library.path=/Applications/Processing.app/Contents/Resources/Java/libraries/opengl/library/ -classpath .:opengl.jar:core.jar:ocd.jar:Picking.jar:/Applications/Processing.app/Contents/Resources/Java/libraries/opengl/library/*  elDice
