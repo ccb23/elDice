@@ -5,34 +5,40 @@ import javax.media.opengl.*;
 import processing.opengl.*;
 import picking.*;
 
-import damkjer.ocd.*;
-
 RainbowduinoCubeDevice cube;
-
-Camera camera1;
-Camera camera2;
 
 Picker picker;
 
+PGraphics pg = null;
+
 Sphere[] spheres;
 
-float camX = width / 2;
-float camY = height / 2;
-int a = 30;
-int q = a / 3;
+int a = 30;  //cube side length
+int q = a / 3; //distance between two LEDs
+float a2 = a / 2.0;
+
+float rotX;
+float min_rotX = 2 * a;
+float max_rotX = 5 * a;
+
+float rotY;
+
+float distance;
+float min_distance = 2 * a;
+float max_distance = 4 * a;
 
 void mouseDragged() {
-  //camX += pmouseX*0.1; //(float)mouseX / (float)width * 2* (float)a;
-  //camY += pmouseY*0.1; //(float)mouseY / (float)height * 2* (float)a;
-  camera1.tumble( -1.0 * radians(mouseX - pmouseX), -1.0 * radians(mouseY - pmouseY));
+  rotY += radians(mouseX - pmouseX);
+  rotX += radians(mouseY - pmouseY);
 }
 
 
 void setup() {
-  RainbowduinoDetector.start(this);
+  //RainbowduinoDetector.start(this);
   cube = new RainbowduinoCubeDevice();
+  distance = max_distance;
 
-  size(640, 360, OPENGL);
+  size(1000, 500, OPENGL);
 
   picker = new Picker(this);
 
@@ -43,11 +49,6 @@ void setup() {
     }
   }
   );
-
-  camera1 = new Camera( this, (float)(a/2.0), (float)(a/2.0), a * 2.0, // eyeX, eyeY, eyeZ
-  (float)(a/2.0), (float)(a/2.0), (float)(a/2.0)); // centerX, centerY, centerZ
-
-  camera2 = new Camera(this);
 
   int id = 0;
   spheres = new Sphere[64];
@@ -61,67 +62,77 @@ void setup() {
 }
 
 void draw() {
-  hint(ENABLE_DEPTH_TEST);
+  //hint(ENABLE_DEPTH_TEST);
   background(120);
-  lights();
-  smooth();
 
-  camera1.feed();
+  pg = createGraphics(640, 360, OPENGL);
+  pg.beginDraw();
+  pg.lights();
+  pg.smooth();
+  pg.camera( a2,  a2, distance, // eyeX, eyeY, eyeZ
+          a2,  a2,  a2,
+         0.0, 1.0, 0.0); // centerX, centerY, centerZ
+
+  pg.translate( a2, 0, a2);
+  pg.rotateY(rotY);
+  pg.translate( -a2, 0, -a2);
+
+  pg.translate( 0, a2, a2);
+  pg.rotateX(-rotX);
+  pg.translate( 0, -a2, -a2);
 
   // Change height of the camera with mouseY
-
   for (int dim = 0; dim < 3; dim++) {
-    stroke(100,100,100);
+    pg.stroke(100,100,100);
     for(int i = 0; i < 4; i++ ) {
       for(int j = 0; j < 4; j++ ) {
-        line((i*q), (j*q), 0, (i*q), (j*q), a);
+        pg.line((i*q), (j*q), 0, (i*q), (j*q), a);
       }
     }
-    rotateX(PI/2);
-    rotateY(PI/2);
+    pg.rotateX(PI/2);
+    pg.rotateY(PI/2);
   }
 
 
-  noStroke();
-  fill(255);
+  pg.noStroke();
+  pg.fill(255);
 
   for(int x = 0; x < 64; x++) {
     picker.start(x);
-    spheres[x].display();
+    spheres[x].display(pg);
   }
 
-  noFill();
-  /*--- 0 == white ---*/
-  stroke(255,255,255);
-  box(4);
+  pg.noFill();
+   /*--- 0 == white ---*/
+  pg.stroke(255,255,255);
+  pg.box(4);
 
 
   /*--- x == red ---*/
-  translate(a,0,0);
-  stroke(255,0,0);
-  box(7);
-  translate(-a,0,0);
+  pg.translate(a,0,0);
+  pg.stroke(255,0,0);
+  pg.box(7);
+  pg.translate(-a,0,0);
 
   /*--- y == green ---*/
-  translate(0,a,0);
-  stroke(0,255,0);
-  box(7);
-  translate(0,-a,0);
+  pg.translate(0,a,0);
+  pg.stroke(0,255,0);
+  pg.box(7);
+  pg.translate(0,-a,0);
 
   /*--- z == blue ---*/
-  translate(0,0,a);
-  stroke(0,0,255);
-  box(7);
-  translate(0,0,-a);
+  pg.translate(0,0,a);
+  pg.stroke(0,0,255);
+  pg.box(7);
+  pg.translate(0,0,-a);
+  pg.endDraw();
 
-  camera2.feed();
+  image(pg,10,10);
 
- // hint(DISABLE_DEPTH_TEST);
- // camera();
-  stroke(#FFFFFF);
-  rectMode(CORNER);
-  rect(0, 0, 30, 30);
-  text("TEST", 100, 100);
+  // stroke(#FFFFFF);
+  // rectMode(CORNER);
+  // rect(0, 0, 30, 30);
+  // text("TEST", 100, 100);
 }
 
 void mouseClicked() {
@@ -133,7 +144,12 @@ void mouseClicked() {
 }
 
 void mouseWheel(int delta) {
-  camera1.zoom(delta*0.03);
+  distance -= delta * 0.5;
+  if (distance > max_distance) {
+    distance = max_distance;
+  } else if ( distance < min_distance) {
+     distance = min_distance;
+  }
 }
 
 
@@ -167,12 +183,12 @@ class Sphere {
     return (byte) (1 - v);
   }
 
-  void display() {
-    fill(c);
-    pushMatrix();
-    translate(x*scale, y*scale, z*scale);
-    box(2);
-    popMatrix();
+  void display(PGraphics pg) {
+    pg.fill(c);
+    pg.pushMatrix();
+    pg.translate(x*scale, y*scale, z*scale);
+    pg.box(2);
+    pg.popMatrix();
   }
 }
 
@@ -190,15 +206,15 @@ class RainbowduinoCubeDevice {
      this.rainbowduino.reset();
      this.rainbowduino.stop();
    }
-   
+
    void brightnessSet(int brightness) {
      if( this.rainbowduino == null ) return;
      this.rainbowduino.brightnessSet(brightness);
    }
-   
+
    void update(Sphere[] spheres) {
      if( this.rainbowduino == null ) return;
-     
+
      int[] frameData = new int[24];
      for(int i = 0; i < 64; i++) {
            int x = spheres[i].y + 4 - (2 * spheres[i].y + 1) * ((spheres[i].x + 1) % 2);
