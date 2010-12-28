@@ -63,6 +63,7 @@ void setup() {
 
 void draw() {
   hint(ENABLE_DEPTH_TEST);
+  
   background(120);
   lights();
   smooth();
@@ -78,7 +79,15 @@ void draw() {
   translate( 0, a2, a2);
   rotateX(-rotX);
   translate( 0, -a2, -a2);
-
+  
+  // Basement 
+  pushMatrix();
+  translate( a2, a2,  float(a) / -6.0);
+  fill(#666666);
+  noStroke();
+  box (a* 1.5, a * 1.5, 1.5);
+  popMatrix();
+  
   // Change height of the camera with mouseY
   for (int dim = 0; dim < 3; dim++) {
     stroke(100,100,100);
@@ -91,10 +100,7 @@ void draw() {
     rotateY(PI/2);
   }
 
-
   noStroke();
-  fill(255);
-
   for(int x = 0; x < 64; x++) {
     picker.start(x);
     spheres[x].display();
