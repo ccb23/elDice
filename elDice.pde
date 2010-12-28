@@ -1,9 +1,13 @@
+import processing.serial.*;
+import com.rngtng.rainbowduino.*;
+
 import javax.media.opengl.*;
 import processing.opengl.*;
 import picking.*;
 
 import damkjer.ocd.*;
 
+RainbowduinoCubeDevice cube;
 
 Camera camera1;
 Camera camera2;
@@ -25,47 +29,45 @@ void mouseDragged() {
 
 
 void setup() {
+  RainbowduinoDetector.start(this);
+  cube = new RainbowduinoCubeDevice();
+
   size(640, 360, OPENGL);
 
   picker = new Picker(this);
 
   noFill();
-  addMouseWheelListener(new java.awt.event.MouseWheelListener() { 
-    public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) { 
+  addMouseWheelListener(new java.awt.event.MouseWheelListener() {
+    public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) {
       mouseWheel(evt.getWheelRotation());
     }
   }
-  ); 
+  );
 
-//  camera1 = new Camera(this, width/2.0, height/2.0, (height/2.0) / tan((PI*60.0) / 360.0), 0, 1, 0);
+  camera1 = new Camera( this, (float)(a/2.0), (float)(a/2.0), a * 2.0, // eyeX, eyeY, eyeZ
+  (float)(a/2.0), (float)(a/2.0), (float)(a/2.0)); // centerX, centerY, centerZ
 
-  camera1 = new Camera( this, a * 2.0, a * 2.0, 220.0, // eyeX, eyeY, eyeZ
-  (float)(a/2.0), (float)(a/2.0), (float)(a/2.0), // centerX, centerY, centerZ
-  0.0, 1.0, 0.0);
-  
-  float poi = 0; //height / 2.0;
-  camera2 = new Camera( this,0, poi, 400.0, // eyeX, eyeY, eyeZ
- 0,poi,0, // centerX, centerY, centerZ
-  0.0, 1.0, 0.0);
-  
+  camera2 = new Camera(this);
+
   int id = 0;
   spheres = new Sphere[64];
   for(int x = 0; x < 4; x++) {
     for(int y = 0; y < 4; y++) {
       for(int z = 0; z < 4; z++) {
-        spheres[id++] = new Sphere(x*q, y*q, z*q);
+        spheres[id++] = new Sphere(x, y, z, q);
       }
     }
   }
 }
 
 void draw() {
+  hint(ENABLE_DEPTH_TEST);
   background(120);
   lights();
   smooth();
-  
+
   camera1.feed();
- 
+
   // Change height of the camera with mouseY
 
   for (int dim = 0; dim < 3; dim++) {
@@ -87,7 +89,7 @@ void draw() {
     picker.start(x);
     spheres[x].display();
   }
-  
+
   noFill();
   /*--- 0 == white ---*/
   stroke(255,255,255);
@@ -111,20 +113,22 @@ void draw() {
   stroke(0,0,255);
   box(7);
   translate(0,0,-a);
-   
+
   camera2.feed();
-   
+
+ // hint(DISABLE_DEPTH_TEST);
+ // camera();
   stroke(#FFFFFF);
   rectMode(CORNER);
-  rect(0,0, 230, 230);
- 
+  rect(0, 0, 30, 30);
+  text("TEST", 100, 100);
 }
 
 void mouseClicked() {
-
   int id = picker.get(mouseX, mouseY);
   if (id > -1) {
     spheres[id].changeColor();
+    cube.update(spheres);
   }
 }
 
@@ -135,35 +139,82 @@ void mouseWheel(int delta) {
 
 class Sphere {
 
-  int x, y, z;
+  int x, y, z, scale;
   color c;
-  boolean r, g, b;
+  byte r, g, b;
 
-  Sphere(int x, int y, int z) {
-    this.x = x; 
-    this.y = y; 
+  Sphere(int x, int y, int z, int scale) {
+    this.x = x;
+    this.y = y;
     this.z = z;
-    this.r = false;
-    this.g = false;
-    this.b = false;
-    this.changeColor();
+    this.scale = scale;
+    this.r = 0;
+    this.g = 0;
+    this.b = 0;
+    this.c = color(this.r * 255, this.g * 255, this.b * 255);
   }
 
   void changeColor() {
-    c = color(this.r ? 255: 0, this.g ? 255: 0, this.b ? 255: 0);
-    this.b = !this.b;
-    if(this.b) { 
-      this.g = !this.g;
-      if(this.g) this.r = !this.r;
+    if(this.b == 1) {
+      this.g = invert(this.g);
+      if(this.g == 1) this.r = invert(this.r);
     }
+    this.b = invert(this.b);
+    c = color(this.r * 255, this.g * 255, this.b * 255);
+  }
+
+  byte invert(byte v) {
+    return (byte) (1 - v);
   }
 
   void display() {
     fill(c);
     pushMatrix();
-    translate(x, y, z);
-    sphere(2);
+    translate(x*scale, y*scale, z*scale);
+    box(2);
     popMatrix();
   }
 }
 
+class RainbowduinoCubeDevice {
+
+   Rainbowduino rainbowduino;
+   int frame;
+
+   RainbowduinoCubeDevice() {
+     this.frame = 0;
+   }
+
+   void init(Rainbowduino _rainbowduino) {
+     this.rainbowduino = _rainbowduino;
+     this.rainbowduino.reset();
+     this.rainbowduino.stop();
+   }
+   
+   void brightnessSet(int brightness) {
+     if( this.rainbowduino == null ) return;
+     this.rainbowduino.brightnessSet(brightness);
+   }
+   
+   void update(Sphere[] spheres) {
+     if( this.rainbowduino == null ) return;
+     
+     int[] frameData = new int[24];
+     for(int i = 0; i < 64; i++) {
+           int x = spheres[i].y + 4 - (2 * spheres[i].y + 1) * ((spheres[i].x + 1) % 2);
+           int y = spheres[i].z + 4 - (int) (Math.floor(4 * (spheres[i].x / 2)));
+           frameData[3*y + 0] |= ((spheres[i].r) & 1) << x;
+           frameData[3*y + 1] |= ((spheres[i].b) & 1) << x;
+           frameData[3*y + 2] |= ((spheres[i].g) & 1) << x;
+     }
+     this.rainbowduino.bufferSetAt(this.frame, frameData);
+   }
+
+}
+
+//callback funtion to register new rainbowduinos
+void rainbowduinoAvailable(Rainbowduino _rainbowduino) {
+  cube.init(_rainbowduino);
+  cube.update(spheres);
+  cube.brightnessSet(16);
+}
