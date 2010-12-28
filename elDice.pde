@@ -62,77 +62,75 @@ void setup() {
 }
 
 void draw() {
-  //hint(ENABLE_DEPTH_TEST);
+  hint(ENABLE_DEPTH_TEST);
   background(120);
+  lights();
+  smooth();
 
-  pg = createGraphics(640, 360, OPENGL);
-  pg.beginDraw();
-  pg.lights();
-  pg.smooth();
-  pg.camera( a2,  a2, distance, // eyeX, eyeY, eyeZ
+  camera( a2,  a2, distance, // eyeX, eyeY, eyeZ
           a2,  a2,  a2,
          0.0, 1.0, 0.0); // centerX, centerY, centerZ
 
-  pg.translate( a2, 0, a2);
-  pg.rotateY(rotY);
-  pg.translate( -a2, 0, -a2);
+  translate( a2, 0, a2);
+  rotateY(rotY);
+  translate( -a2, 0, -a2);
 
-  pg.translate( 0, a2, a2);
-  pg.rotateX(-rotX);
-  pg.translate( 0, -a2, -a2);
+  translate( 0, a2, a2);
+  rotateX(-rotX);
+  translate( 0, -a2, -a2);
 
   // Change height of the camera with mouseY
   for (int dim = 0; dim < 3; dim++) {
-    pg.stroke(100,100,100);
+    stroke(100,100,100);
     for(int i = 0; i < 4; i++ ) {
       for(int j = 0; j < 4; j++ ) {
-        pg.line((i*q), (j*q), 0, (i*q), (j*q), a);
+        line((i*q), (j*q), 0, (i*q), (j*q), a);
       }
     }
-    pg.rotateX(PI/2);
-    pg.rotateY(PI/2);
+    rotateX(PI/2);
+    rotateY(PI/2);
   }
 
 
-  pg.noStroke();
-  pg.fill(255);
+  noStroke();
+  fill(255);
 
   for(int x = 0; x < 64; x++) {
     picker.start(x);
-    spheres[x].display(pg);
+    spheres[x].display();
   }
 
-  pg.noFill();
-   /*--- 0 == white ---*/
-  pg.stroke(255,255,255);
-  pg.box(4);
+  noFill();
+  /*--- 0 == white ---*/
+  stroke(255,255,255);
+  box(4);
 
 
   /*--- x == red ---*/
-  pg.translate(a,0,0);
-  pg.stroke(255,0,0);
-  pg.box(7);
-  pg.translate(-a,0,0);
+  translate(a,0,0);
+  stroke(255,0,0);
+  box(7);
+  translate(-a,0,0);
 
   /*--- y == green ---*/
-  pg.translate(0,a,0);
-  pg.stroke(0,255,0);
-  pg.box(7);
-  pg.translate(0,-a,0);
+  translate(0,a,0);
+  stroke(0,255,0);
+  box(7);
+  translate(0,-a,0);
 
   /*--- z == blue ---*/
-  pg.translate(0,0,a);
-  pg.stroke(0,0,255);
-  pg.box(7);
-  pg.translate(0,0,-a);
-  pg.endDraw();
+  translate(0,0,a);
+  stroke(0,0,255);
+  box(7);
+  translate(0,0,-a);
 
-  image(pg,10,10);
+  hint(DISABLE_DEPTH_TEST);
+  camera();
 
-  // stroke(#FFFFFF);
-  // rectMode(CORNER);
-  // rect(0, 0, 30, 30);
-  // text("TEST", 100, 100);
+  stroke(#FFFFFF);
+  rectMode(CORNER);
+  rect(0, 0, 30, 30);
+  text("TEST", 100, 100);
 }
 
 void mouseClicked() {
@@ -183,12 +181,12 @@ class Sphere {
     return (byte) (1 - v);
   }
 
-  void display(PGraphics pg) {
-    pg.fill(c);
-    pg.pushMatrix();
-    pg.translate(x*scale, y*scale, z*scale);
-    pg.box(2);
-    pg.popMatrix();
+  void display() {
+    fill(c);
+    pushMatrix();
+    translate(x*scale, y*scale, z*scale);
+    box(2);
+    popMatrix();
   }
 }
 
